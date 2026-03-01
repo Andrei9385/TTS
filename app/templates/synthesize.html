@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Create synthesis job</h2>
+
+  {% if error %}
+  <div class="error">{{ error }}</div>
+  {% endif %}
+
+  {% if not profiles %}
+  <p>You need at least one voice profile before creating synthesis jobs.</p>
+  <p><a class="button" href="/profiles">Go to profiles</a></p>
+  {% else %}
+  <form action="/synthesize" method="post" class="form-grid">
+    <label>
+      Voice profile
+      <select name="voice_profile_id" required>
+        {% for profile in profiles %}
+        <option value="{{ profile.id }}">{{ profile.name }} (id={{ profile.id }})</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      Russian text
+      <textarea name="input_text" rows="6" required placeholder="Введите текст на русском (стресс-маркеры: +)"></textarea>
+    </label>
+
+    <label class="inline-check">
+      <input type="checkbox" name="auto_accent_enabled" value="true" />
+      Enable auto-accent preprocessing
+    </label>
+
+    <label>
+      Mode
+      <select name="mode">
+        <option value="preview">Preview</option>
+        <option value="full">Full</option>
+      </select>
+    </label>
+
+    <button type="submit">Enqueue synthesis</button>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}
