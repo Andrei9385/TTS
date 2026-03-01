@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     ffmpeg_bin: str = "ffmpeg"
 
     f5_tts_model_id: str = "Misha24-10/F5-TTS_RUSSIAN"
-    f5_tts_command: str = "python scripts/f5_tts_runner_real.py"
+    f5_tts_command: str = "python3 scripts/f5_tts_runner_real.py"
     f5_tts_timeout_seconds: int = 180
 
     training_runner_command: str = ""

@@ -14,7 +14,7 @@ This installer will:
 - install Python dependencies,
 - install CPU PyTorch + real F5-TTS runtime,
 - create `.env` if missing,
-- configure `F5_TTS_COMMAND="python scripts/f5_tts_runner_real.py"` by default,
+- configure `F5_TTS_COMMAND="python3 scripts/f5_tts_runner_real.py"` by default,
 - initialize DB,
 - enable/start Redis,
 - install and start systemd services for web + worker.
@@ -26,7 +26,7 @@ After install, open: `http://127.0.0.1:8000`
 Default `.env` configuration points to the real runner:
 
 ```env
-F5_TTS_COMMAND="python scripts/f5_tts_runner_real.py"
+F5_TTS_COMMAND="python3 scripts/f5_tts_runner_real.py"
 F5_TTS_MODEL_ID="Misha24-10/F5-TTS_RUSSIAN"
 ```
 
@@ -37,7 +37,7 @@ The worker uses the existing adapter/service flow and executes synthesis in back
 Use stub runner only for debugging:
 
 ```bash
-sed -i 's#^F5_TTS_COMMAND=.*#F5_TTS_COMMAND="python scripts/f5_tts_runner_stub.py"#' .env
+sed -i 's#^F5_TTS_COMMAND=.*#F5_TTS_COMMAND="python3 scripts/f5_tts_runner_stub.py"#' .env
 sudo systemctl restart tts-worker tts-web
 ```
 

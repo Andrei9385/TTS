@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import shlex
 import subprocess
+import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -58,6 +59,7 @@ class F5TTSAdapter:
         output_dir.mkdir(parents=True, exist_ok=True)
 
         command_prefix = self._parse_command(self.settings.f5_tts_command)
+        command_prefix = self._normalize_command(command_prefix)
         if not command_prefix:
             return F5TTSResult(
                 success=False,
@@ -106,7 +108,10 @@ class F5TTSAdapter:
                     return_code=None,
                     stdout="",
                     stderr="",
-                    error_message="Configured F5-TTS command was not found in PATH.",
+                    error_message=(
+                        "Configured F5-TTS command was not found in PATH or script path is invalid. "
+                        f"command={command_prefix}"
+                    ),
                     command=command,
                 )
             except subprocess.TimeoutExpired as exc:
@@ -157,3 +162,20 @@ class F5TTSAdapter:
         if not raw_command:
             return []
         return shlex.split(raw_command.strip())
+
+    @staticmethod
+    def _normalize_command(command: list[str]) -> list[str]:
+        if not command:
+            return command
+
+        normalized = command.copy()
+        if normalized[0] in {"python", "python3"}:
+            normalized[0] = sys.executable
+
+        if len(normalized) >= 2 and normalized[1].endswith(".py"):
+            script_path = Path(normalized[1])
+            if not script_path.is_absolute():
+                project_root = Path(__file__).resolve().parents[2]
+                normalized[1] = str((project_root / script_path).resolve())
+
+        return normalized

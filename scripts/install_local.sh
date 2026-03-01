@@ -40,9 +40,9 @@ if [ ! -f .env ]; then
 fi
 
 if grep -q '^F5_TTS_COMMAND=' .env; then
-  sed -i 's#^F5_TTS_COMMAND=.*#F5_TTS_COMMAND="python scripts/f5_tts_runner_real.py"#' .env
+  sed -i 's#^F5_TTS_COMMAND=.*#F5_TTS_COMMAND="python3 scripts/f5_tts_runner_real.py"#' .env
 else
-  echo 'F5_TTS_COMMAND="python scripts/f5_tts_runner_real.py"' >> .env
+  echo 'F5_TTS_COMMAND="python3 scripts/f5_tts_runner_real.py"' >> .env
 fi
 
 if grep -q '^F5_TTS_MODEL_ID=' .env; then
@@ -68,7 +68,7 @@ Type=simple
 User=${USER}
 WorkingDirectory=${PROJECT_DIR}
 EnvironmentFile=${PROJECT_DIR}/.env
-ExecStart=${PROJECT_DIR}/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+ExecStart=${PROJECT_DIR}/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
 Restart=on-failure
 RestartSec=5
 
@@ -100,4 +100,4 @@ $SUDO systemctl enable --now tts-worker.service
 
 echo "[install] Complete."
 echo "[install] Open: http://127.0.0.1:8000"
-echo "[install] Troubleshooting fallback: set F5_TTS_COMMAND=\"python scripts/f5_tts_runner_stub.py\" in .env"
+echo "[install] Troubleshooting fallback: set F5_TTS_COMMAND=\"python3 scripts/f5_tts_runner_stub.py\" in .env"
