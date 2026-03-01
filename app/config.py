@@ -24,6 +24,12 @@ class Settings(BaseSettings):
 
     ffmpeg_bin: str = "ffmpeg"
 
+    f5_tts_model_id: str = "Misha24-10/F5-TTS_RUSSIAN"
+    f5_tts_command: str = ""
+    f5_tts_timeout_seconds: int = 180
+
+    auto_accent_adapter: str = "noop"
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
