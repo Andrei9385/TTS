@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Project bootstrap complete</h2>
+  <p>This MVP currently supports voice profile upload and storage setup.</p>
+  <p>Configured profiles: <strong>{{ profiles|length }}</strong></p>
+  <p><a class="button" href="/profiles">Manage voice profiles</a></p>
+</section>
+{% endblock %}
