@@ -5,11 +5,12 @@
 - `app/services/`: business logic/adapters (audio, preprocessing, synthesis/training orchestration)
 - `app/workers/`: Celery app + async task entrypoints
 - `app/templates/`: Jinja2 templates and HTMX partials
-- `scripts/`: local operations scripts (bootstrap, init, run, smoke, stubs)
+- `scripts/`: local operations scripts (install/bootstrap/init/run/smoke/stubs)
 - `systemd/`: local example unit files
 
 ## Key commands
-- Bootstrap env: `./scripts/bootstrap.sh`
+- One-command Ubuntu install: `./scripts/install_local.sh`
+- Bootstrap env only: `./scripts/bootstrap.sh`
 - Init DB/directories: `python scripts/init_db.py`
 - Run web app: `./scripts/run_web.sh`
 - Run worker: `./scripts/run_worker.sh`
@@ -17,7 +18,7 @@
 
 ## Validation commands
 - `python -m compileall app scripts`
-- `bash -n scripts/bootstrap.sh scripts/run_web.sh scripts/run_worker.sh`
+- `bash -n scripts/*.sh`
 - `python scripts/smoke_test.py`
 
 ## Coding conventions for this repo

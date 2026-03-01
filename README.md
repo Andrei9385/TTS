@@ -1,110 +1,76 @@
 # TTS
 
-Local CPU-only MVP scaffold for a Russian voice-cloning web app (Ubuntu 24.04.3 focus).
+Local CPU-only MVP of a Russian voice-cloning web app on Ubuntu 24.04.3 using FastAPI + Celery + Redis + F5-TTS.
 
-## What is implemented now
-
-- FastAPI + Jinja2 web app
-- Voice profile upload + ffmpeg normalization
-- SQLite persistence for profiles, synthesis jobs, and training jobs
-- Celery + Redis background tasks for synthesis and training scaffolds
-- Text preprocessing (`+` stress preservation + validation)
-- F5-TTS adapter scaffold (subprocess-based, graceful failure if not configured)
-- Admin page scaffold for fine-tuning dataset upload and training job creation
-
-## Ubuntu 24.04.3 setup
-
-### 1) Install system packages
+## One-command install (real F5-TTS default)
 
 ```bash
-sudo apt update
-sudo apt install -y python3 python3-venv ffmpeg redis-server
+./scripts/install_local.sh
 ```
 
-### 2) Start Redis
+This installer will:
+- install required Ubuntu packages,
+- create/update `.venv`,
+- install Python dependencies,
+- install CPU PyTorch + real F5-TTS runtime,
+- create `.env` if missing,
+- configure `F5_TTS_COMMAND="python scripts/f5_tts_runner_real.py"` by default,
+- initialize DB,
+- enable/start Redis,
+- install and start systemd services for web + worker.
+
+After install, open: `http://127.0.0.1:8000`
+
+## Real synthesis default path
+
+Default `.env` configuration points to the real runner:
+
+```env
+F5_TTS_COMMAND="python scripts/f5_tts_runner_real.py"
+F5_TTS_MODEL_ID="Misha24-10/F5-TTS_RUSSIAN"
+```
+
+The worker uses the existing adapter/service flow and executes synthesis in background jobs.
+
+## Optional troubleshooting fallback (stub)
+
+Use stub runner only for debugging:
 
 ```bash
-sudo systemctl enable --now redis-server
+sed -i 's#^F5_TTS_COMMAND=.*#F5_TTS_COMMAND="python scripts/f5_tts_runner_stub.py"#' .env
+sudo systemctl restart tts-worker tts-web
 ```
 
-### 3) Bootstrap Python environment
+## First real synthesis test after install
+
+1. Open `http://127.0.0.1:8000/profiles` and upload a short Russian reference WAV/MP3/M4A.
+2. Open `http://127.0.0.1:8000/synthesize`, select profile, enter Russian text with optional `+` stress marks, submit.
+3. Open `http://127.0.0.1:8000/history` and verify job reaches `done`, then play generated audio.
+
+## Manual run commands (without systemd)
 
 ```bash
 ./scripts/bootstrap.sh
-```
-
-### 4) Create `.env`
-
-```bash
 cp .env.example .env
-```
-
-### 5) Initialize DB + local directories
-
-```bash
-source .venv/bin/activate
 python scripts/init_db.py
-```
-
-### 6) Run the web app
-
-```bash
 ./scripts/run_web.sh
-```
-
-### 7) Run the worker (separate terminal)
-
-```bash
 ./scripts/run_worker.sh
 ```
 
-## Main pages
+## Current environment limitations (this sandbox)
 
-- Profiles: `http://127.0.0.1:8000/profiles`
-- Synthesize: `http://127.0.0.1:8000/synthesize`
-- History: `http://127.0.0.1:8000/history`
-- Admin: `http://127.0.0.1:8000/admin`
+- Network/proxy restrictions may block dependency installation.
+- Because dependencies are not installable here, full runtime verification of real F5 synthesis cannot be completed in this sandbox.
 
-## Training scaffold behavior
+### Exact Ubuntu 24.04.3 verification commands
 
-Admin dataset upload creates a `training_jobs` record and enqueues a Celery task.
-
-- If `TRAINING_RUNNER_COMMAND` is not configured, the job fails gracefully with a clear error.
-- Optional stub command for wiring tests:
+Run these on a real machine after install:
 
 ```bash
-TRAINING_RUNNER_COMMAND="python scripts/training_runner_stub.py"
+python scripts/init_db.py
+systemctl status tts-web --no-pager
+systemctl status tts-worker --no-pager
+curl -I http://127.0.0.1:8000/
 ```
 
-## F5-TTS scaffold behavior
-
-- Uses model id `Misha24-10/F5-TTS_RUSSIAN` by default.
-- If `F5_TTS_COMMAND` is empty/unavailable, synthesis jobs fail gracefully and persist error details.
-- Optional stub command:
-
-```bash
-F5_TTS_COMMAND="python scripts/f5_tts_runner_stub.py"
-```
-
-## Local operations scripts
-
-- `scripts/bootstrap.sh`
-- `scripts/init_db.py`
-- `scripts/run_web.sh`
-- `scripts/run_worker.sh`
-- `scripts/smoke_test.py`
-
-## systemd examples
-
-- `systemd/tts-web.service.example`
-- `systemd/tts-worker.service.example`
-
-## Current limitations in this environment
-
-- Dependency installation may be blocked by network/proxy restrictions in this sandbox.
-- The following runtime checks remain to run on a real Ubuntu 24.04.3 host after `./scripts/bootstrap.sh` succeeds:
-  - `python scripts/init_db.py`
-  - `./scripts/run_web.sh` (open `/profiles`, `/synthesize`, `/history`, `/admin`)
-  - `./scripts/run_worker.sh` with Redis running
-  - enqueue one synthesis job and one training job to verify Celery status transitions
-- Fine-tuning execution is scaffold-only unless a real `TRAINING_RUNNER_COMMAND` is provided.
+Then execute the first real synthesis test from UI as described above.

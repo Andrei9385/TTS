@@ -7,3 +7,4 @@ pydantic>=2.7.0
 pydantic-settings>=2.2.1
 celery>=5.4.0
 redis>=5.0.4
+soundfile>=0.12.1
