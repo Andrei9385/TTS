@@ -99,5 +99,9 @@ $SUDO systemctl enable --now tts-web.service
 $SUDO systemctl enable --now tts-worker.service
 
 echo "[install] Complete."
-echo "[install] Open: http://127.0.0.1:8000"
+echo "[install] Open: http://<IP_МАШИНЫ>:8000 (локально: http://127.0.0.1:8000)"
 echo "[install] Troubleshooting fallback: set F5_TTS_COMMAND=\"python3 scripts/f5_tts_runner_stub.py\" in .env"
+echo "[install] If service still listens on 127.0.0.1, run:"
+echo "  sudo systemctl daemon-reload"
+echo "  sudo systemctl restart tts-web"
+echo "  systemctl cat tts-web --no-pager | sed -n '/ExecStart/p'"

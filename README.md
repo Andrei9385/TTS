@@ -83,3 +83,13 @@ curl -I http://127.0.0.1:8000/
 ```
 
 Then execute the first real synthesis test from UI as described above.
+
+Проверьте, что systemd реально применил новый `ExecStart`:
+
+```bash
+systemctl cat tts-web --no-pager | sed -n '/ExecStart/p'
+ss -ltnp | rg ':8000'
+```
+
+Ожидается bind на `0.0.0.0:8000` (или `:::8000`), а не `127.0.0.1:8000`.
+
