@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Upload voice profile</h2>
+  <p>Supported formats: WAV, MP3, M4A. Files are normalized to mono 24kHz WAV.</p>
+
+  {% if error %}
+  <div class="error">{{ error }}</div>
+  {% endif %}
+
+  <form action="/profiles" method="post" enctype="multipart/form-data" class="form-grid">
+    <label>
+      Profile name
+      <input type="text" name="name" required maxlength="255" />
+    </label>
+
+    <label>
+      Optional transcript
+      <textarea name="transcript" rows="4" placeholder="Reference transcript (optional)"></textarea>
+    </label>
+
+    <label>
+      Audio file
+      <input type="file" name="audio_file" accept=".wav,.mp3,.m4a,audio/wav,audio/mpeg,audio/x-m4a,audio/mp4" required />
+    </label>
+
+    <button type="submit">Upload profile</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Saved profiles</h2>
+  {% if profiles %}
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Source file</th>
+        <th>Normalized file</th>
+        <th>Transcript</th>
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for profile in profiles %}
+      <tr>
+        <td>{{ profile.id }}</td>
+        <td>{{ profile.name }}</td>
+        <td>{{ profile.source_filename }}</td>
+        <td>{{ profile.normalized_filename }}</td>
+        <td>{{ profile.transcript or "—" }}</td>
+        <td>{{ profile.created_at }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No profiles uploaded yet.</p>
+  {% endif %}
+</section>
+{% endblock %}
