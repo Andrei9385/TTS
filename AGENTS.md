@@ -5,7 +5,7 @@
 - `app/services/`: business logic/adapters (audio, preprocessing, synthesis/training orchestration)
 - `app/workers/`: Celery app + async task entrypoints
 - `app/templates/`: Jinja2 templates and HTMX partials
-- `scripts/`: local operations scripts (bootstrap, init, run, smoke test)
+- `scripts/`: local operations scripts (bootstrap, init, run, smoke, stubs)
 - `systemd/`: local example unit files
 
 ## Key commands
@@ -17,7 +17,7 @@
 
 ## Validation commands
 - `python -m compileall app scripts`
-- `python scripts/init_db.py`
+- `bash -n scripts/bootstrap.sh scripts/run_web.sh scripts/run_worker.sh`
 - `python scripts/smoke_test.py`
 
 ## Coding conventions for this repo

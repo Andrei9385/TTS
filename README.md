@@ -101,6 +101,10 @@ F5_TTS_COMMAND="python scripts/f5_tts_runner_stub.py"
 
 ## Current limitations in this environment
 
-- Dependency installation may be blocked by network/proxy restrictions.
-- Without installed dependencies, app startup/worker execution cannot be fully verified in this sandbox.
+- Dependency installation may be blocked by network/proxy restrictions in this sandbox.
+- The following runtime checks remain to run on a real Ubuntu 24.04.3 host after `./scripts/bootstrap.sh` succeeds:
+  - `python scripts/init_db.py`
+  - `./scripts/run_web.sh` (open `/profiles`, `/synthesize`, `/history`, `/admin`)
+  - `./scripts/run_worker.sh` with Redis running
+  - enqueue one synthesis job and one training job to verify Celery status transitions
 - Fine-tuning execution is scaffold-only unless a real `TRAINING_RUNNER_COMMAND` is provided.

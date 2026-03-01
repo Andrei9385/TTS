@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
+from urllib.parse import quote_plus
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
@@ -205,7 +206,7 @@ def create_training_job(
         notes=notes,
     )
     if error:
-        return RedirectResponse(url=f"/admin?error={error.replace(' ', '+')}", status_code=303)
+        return RedirectResponse(url=f"/admin?error={quote_plus(error)}", status_code=303)
     return RedirectResponse(url=f"/admin?focus_job={job.id}", status_code=303)
 
 
