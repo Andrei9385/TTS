@@ -1,0 +1,15 @@
+[Unit]
+Description=Russian TTS MVP Worker (Celery)
+After=network.target redis-server.service
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/opt/tts
+EnvironmentFile=/opt/tts/.env
+ExecStart=/opt/tts/.venv/bin/celery -A app.workers.celery_app:celery_app worker --loglevel=INFO
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
