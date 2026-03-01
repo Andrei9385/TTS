@@ -19,7 +19,16 @@ This installer will:
 - enable/start Redis,
 - install and start systemd services for web + worker.
 
-After install, open: `http://127.0.0.1:8000`
+After install, open: `http://<IP_МАШИНЫ>:8000` (или `http://127.0.0.1:8000` локально).
+
+Если после обновления в логах всё ещё видно `Uvicorn running on http://127.0.0.1:8000`, обновите unit и перезапустите:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart tts-web
+systemctl cat tts-web --no-pager
+```
+
 
 ## Real synthesis default path
 
@@ -43,9 +52,9 @@ sudo systemctl restart tts-worker tts-web
 
 ## First real synthesis test after install
 
-1. Open `http://127.0.0.1:8000/profiles` and upload a short Russian reference WAV/MP3/M4A.
-2. Open `http://127.0.0.1:8000/synthesize`, select profile, enter Russian text with optional `+` stress marks, submit.
-3. Open `http://127.0.0.1:8000/history` and verify job reaches `done`, then play generated audio.
+1. Open `http://<IP_МАШИНЫ>:8000/profiles` and upload a short Russian reference WAV/MP3/M4A.
+2. Open `http://<IP_МАШИНЫ>:8000/synthesize`, select profile, enter Russian text with optional `+` stress marks, submit.
+3. Open `http://<IP_МАШИНЫ>:8000/history` and verify job reaches `done`, then play generated audio.
 
 ## Manual run commands (without systemd)
 
