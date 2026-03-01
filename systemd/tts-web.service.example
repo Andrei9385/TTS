@@ -1,0 +1,15 @@
+[Unit]
+Description=Russian TTS MVP Web (FastAPI/Uvicorn)
+After=network.target redis-server.service
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/opt/tts
+EnvironmentFile=/opt/tts/.env
+ExecStart=/opt/tts/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

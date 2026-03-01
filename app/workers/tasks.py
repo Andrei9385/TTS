@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
+
 from app.config import get_settings
 from app.db import SessionLocal
-from app.models import SynthesisJob, VoiceProfile
+from app.models import SynthesisJob, TrainingJob, VoiceProfile
 from app.services.auto_accent import build_auto_accent_adapter
 from app.services.f5_tts_adapter import F5TTSAdapter, F5TTSRequest
 from app.services.text_preprocessing import preprocess_text
+from app.services.training_runner import TrainingRunRequest, TrainingRunner
 from app.workers.celery_app import celery_app
 
 
@@ -78,6 +81,46 @@ def process_synthesis_job(job_id: int) -> dict[str, str | int | None]:
             "status": job.status,
             "error": job.error_message,
             "output_filename": job.output_filename,
+        }
+
+
+@celery_app.task(name="app.workers.tasks.process_training_job")
+def process_training_job(job_id: int) -> dict[str, str | int | None]:
+    settings = get_settings()
+    runner = TrainingRunner(settings)
+
+    with SessionLocal() as db:
+        job = db.get(TrainingJob, job_id)
+        if job is None:
+            return {"job_id": job_id, "status": "failed", "error": "Training job not found."}
+
+        job.status = "processing"
+        job.started_at = datetime.utcnow()
+        db.commit()
+
+        result = runner.run(
+            TrainingRunRequest(
+                training_job_id=job.id,
+                dataset_path=Path(job.dataset_path),
+                notes=job.notes,
+            )
+        )
+
+        job.runner_log = _build_log(None, result.stdout, result.stderr)[:4000]
+        if result.success:
+            job.status = "done"
+            job.error_message = None
+        else:
+            job.status = "failed"
+            job.error_message = result.error_message or "Unknown training runner error."
+
+        job.completed_at = datetime.utcnow()
+        db.commit()
+
+        return {
+            "job_id": job.id,
+            "status": job.status,
+            "error": job.error_message,
         }
 
 

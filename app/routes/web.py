@@ -12,9 +12,10 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.config import Settings, get_settings
 from app.db import get_db_session
-from app.models import SynthesisJob, VoiceProfile
+from app.models import SynthesisJob, TrainingJob, VoiceProfile
 from app.services.audio_service import normalize_audio
 from app.services.synthesis_service import create_and_enqueue_synthesis_job
+from app.services.training_service import create_and_enqueue_training_job
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -174,6 +175,38 @@ def history_table_partial(request: Request, db: Session = Depends(get_db_session
             "jobs": jobs,
         },
     )
+
+
+@router.get("/admin", response_class=HTMLResponse)
+def admin_page(request: Request, db: Session = Depends(get_db_session)) -> HTMLResponse:
+    training_jobs = db.scalars(select(TrainingJob).order_by(TrainingJob.created_at.desc()).limit(100)).all()
+    return templates.TemplateResponse(
+        request,
+        "admin.html",
+        {
+            "training_jobs": training_jobs,
+            "error": request.query_params.get("error"),
+            "page_title": "Admin / Fine-tuning",
+        },
+    )
+
+
+@router.post("/admin/training-jobs")
+def create_training_job(
+    dataset_file: UploadFile = File(...),
+    notes: str = Form(default=""),
+    settings: Settings = Depends(get_settings),
+    db: Session = Depends(get_db_session),
+) -> RedirectResponse:
+    job, error = create_and_enqueue_training_job(
+        db,
+        settings=settings,
+        dataset_file=dataset_file,
+        notes=notes,
+    )
+    if error:
+        return RedirectResponse(url=f"/admin?error={error.replace(' ', '+')}", status_code=303)
+    return RedirectResponse(url=f"/admin?focus_job={job.id}", status_code=303)
 
 
 def _get_history_jobs(db: Session) -> list[SynthesisJob]:

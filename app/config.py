@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     f5_tts_command: str = ""
     f5_tts_timeout_seconds: int = 180
 
+    training_runner_command: str = ""
+    training_runner_timeout_seconds: int = 3600
+
     auto_accent_adapter: str = "noop"
 
     redis_url: str = "redis://127.0.0.1:6379/0"

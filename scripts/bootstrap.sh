@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-python3 -m venv .venv
+if [ ! -d .venv ]; then
+  python3 -m venv .venv
+fi
+
 source .venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements/base.txt
+python -m pip install --upgrade pip
+python -m pip install -r requirements/base.txt
 
 echo "Bootstrap complete. Activate with: source .venv/bin/activate"
