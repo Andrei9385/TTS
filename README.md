@@ -8,21 +8,12 @@ Local CPU-only MVP scaffold for a Russian voice-cloning web app.
 - `.env`-driven configuration
 - Logging to console and `data/logs/app.log`
 - SQLite initialization with SQLAlchemy models
-- Idempotent DB initialization script
-- Local storage directory bootstrap
-- Voice profile upload page with:
-  - profile name
-  - optional transcript
-  - WAV/MP3/M4A validation
-  - ffmpeg normalization to mono 24kHz WAV
-  - metadata persistence in SQLite
-- Text preprocessing service with:
-  - whitespace normalization
-  - conservative punctuation normalization
-  - stress marker (`+`) preservation
-  - Russian text input validation
-  - pluggable auto-accent adapter interface + no-op fallback
-- F5-TTS subprocess adapter scaffold targeting `Misha24-10/F5-TTS_RUSSIAN` with structured success/failure results
+- Voice profile upload with ffmpeg normalization (WAV/MP3/M4A)
+- Text preprocessing service (whitespace/punctuation normalization, `+` stress preservation, Russian text validation)
+- Pluggable auto-accent adapter interface with a no-op fallback
+- F5-TTS subprocess adapter scaffold for model `Misha24-10/F5-TTS_RUSSIAN`
+- Celery + Redis background flow for synthesis jobs
+- Synthesize page (enqueue only) and History page with polling updates
 
 ## Project structure
 
@@ -30,8 +21,6 @@ Local CPU-only MVP scaffold for a Russian voice-cloning web app.
 app/
   main.py
   config.py
-  logging_config.py
-  storage.py
   db.py
   models.py
   routes/web.py
@@ -40,70 +29,78 @@ app/
     auto_accent.py
     text_preprocessing.py
     f5_tts_adapter.py
+    synthesis_service.py
+  workers/
+    celery_app.py
+    tasks.py
   templates/
   static/
 scripts/
   bootstrap.sh
   run_web.sh
+  run_worker.sh
   init_db.py
   f5_tts_runner_stub.py
 requirements/
   base.txt
-data/
-  sqlite/
-  uploads/
-  outputs/
-  datasets/
-  tmp/
-  logs/
 .env.example
 ```
 
 ## Quick start
 
-1. Create environment and install deps:
+1. Bootstrap Python environment:
 
 ```bash
 ./scripts/bootstrap.sh
 ```
 
-2. Copy env file:
+2. Create env file:
 
 ```bash
 cp .env.example .env
 ```
 
-3. Initialize database and storage directories:
+3. Ensure Redis is running (example Ubuntu):
+
+```bash
+sudo systemctl start redis-server
+```
+
+4. Initialize DB and data directories:
 
 ```bash
 source .venv/bin/activate
 python scripts/init_db.py
 ```
 
-4. Run web app:
+5. Start web app:
 
 ```bash
 ./scripts/run_web.sh
 ```
 
-5. Open browser:
+6. Start Celery worker (separate terminal):
 
-- `http://127.0.0.1:8000`
-- Voice profiles: `http://127.0.0.1:8000/profiles`
+```bash
+./scripts/run_worker.sh
+```
 
-## F5-TTS adapter scaffold
+7. Open browser:
 
-The F5 adapter is intentionally isolated from routes and uses a safe subprocess command list (no shell execution).
+- `http://127.0.0.1:8000/synthesize`
+- `http://127.0.0.1:8000/history`
 
-Set in `.env`:
+## F5-TTS adapter notes
 
-- `F5_TTS_MODEL_ID` (default: `Misha24-10/F5-TTS_RUSSIAN`)
-- `F5_TTS_COMMAND` (external command to run inference)
+Set these `.env` keys:
+
+- `F5_TTS_MODEL_ID` (default `Misha24-10/F5-TTS_RUSSIAN`)
+- `F5_TTS_COMMAND` (external runner command)
 - `F5_TTS_TIMEOUT_SECONDS`
 
-If `F5_TTS_COMMAND` is empty, the adapter returns a graceful structured error. This allows development without blocking on model downloads.
+If `F5_TTS_COMMAND` is empty/unavailable, synthesis jobs fail gracefully with a clear DB error.
 
-Optional stub command for testing adapter flow:
+Optional scaffold runner:
 
 ```bash
 F5_TTS_COMMAND="python scripts/f5_tts_runner_stub.py"
@@ -111,5 +108,5 @@ F5_TTS_COMMAND="python scripts/f5_tts_runner_stub.py"
 
 ## Notes
 
-- ffmpeg must be available in PATH (or set `FFMPEG_BIN` in `.env`).
-- This stage does not implement synthesis routes, Celery, or training execution.
+- Heavy synthesis is executed only by Celery workers.
+- Training execution is intentionally not implemented at this stage.

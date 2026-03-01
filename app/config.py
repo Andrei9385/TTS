@@ -30,6 +30,10 @@ class Settings(BaseSettings):
 
     auto_accent_adapter: str = "noop"
 
+    redis_url: str = "redis://127.0.0.1:6379/0"
+    celery_broker_url: str = "redis://127.0.0.1:6379/0"
+    celery_result_backend: str = "redis://127.0.0.1:6379/1"
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 

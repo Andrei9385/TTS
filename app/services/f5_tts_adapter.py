@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shlex
 import subprocess
 import tempfile
 from dataclasses import dataclass
@@ -79,6 +80,7 @@ class F5TTSAdapter:
             "output_wav_path": str(request.output_wav_path),
         }
 
+        self.settings.tmp_dir.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=self.settings.tmp_dir, prefix="f5_tts_") as tmp_dir:
             payload_path = Path(tmp_dir) / "payload.json"
             payload_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
@@ -154,4 +156,4 @@ class F5TTSAdapter:
     def _parse_command(raw_command: str | None) -> list[str]:
         if not raw_command:
             return []
-        return [segment for segment in raw_command.strip().split(" ") if segment]
+        return shlex.split(raw_command.strip())

@@ -2,8 +2,12 @@
 {% block content %}
 <section class="card">
   <h2>Project bootstrap complete</h2>
-  <p>This MVP currently supports voice profile upload and storage setup.</p>
+  <p>This MVP currently supports voice profile upload and asynchronous synthesis job enqueueing.</p>
   <p>Configured profiles: <strong>{{ profiles|length }}</strong></p>
-  <p><a class="button" href="/profiles">Manage voice profiles</a></p>
+  <p>Recent jobs: <strong>{{ recent_jobs|length }}</strong></p>
+  <p>
+    <a class="button" href="/profiles">Manage voice profiles</a>
+    <a class="button" href="/synthesize">Open synthesis page</a>
+  </p>
 </section>
 {% endblock %}
