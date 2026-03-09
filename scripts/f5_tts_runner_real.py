@@ -102,8 +102,8 @@ def _call_f5_api(model_id: str, ref_audio: Path, ref_text: str | None, target_te
     ctor_attempts = [
         {"model": model_id, "device": "cpu"},
         {"model_name": model_id, "device": "cpu"},
-        {"device": "cpu"},
-        {},
+        {"model": model_id},
+        {"model_name": model_id},
     ]
 
     last_error: Exception | None = None
@@ -117,7 +117,9 @@ def _call_f5_api(model_id: str, ref_audio: Path, ref_text: str | None, target_te
             continue
 
     if tts is None:
-        raise RuntimeError(f"Could not initialize F5TTS: {last_error}")
+        raise RuntimeError(f"Could not initialize F5TTS with requested model '{model_id}': {last_error}")
+
+    print(f"DEBUG: F5TTS initialized class={tts.__class__.__name__} model_id={model_id}")
 
     infer_method = None
     for candidate in ("infer", "synthesize", "tts"):
@@ -147,15 +149,20 @@ def _call_f5_api(model_id: str, ref_audio: Path, ref_text: str | None, target_te
     ]
 
     infer_error: Exception | None = None
+    used_infer_kwargs: dict[str, Any] | None = None
     for kwargs in infer_attempts:
         try:
             result = infer_method(**kwargs)
+            used_infer_kwargs = kwargs
             break
         except TypeError as exc:
             infer_error = exc
             continue
     else:
         raise RuntimeError(f"Could not call F5TTS inference method with supported signatures: {infer_error}")
+
+    if used_infer_kwargs is not None:
+        print("DEBUG: infer_kwargs_keys=" + ",".join(sorted(used_infer_kwargs.keys())))
 
     # Common shapes observed in F5-based APIs: (wav, sr, *rest) or dict/object.
     if isinstance(result, tuple):
@@ -206,6 +213,15 @@ def main() -> int:
         return _fail("Target text is empty.")
     if not str(output_wav):
         return _fail("Output path is missing in payload.")
+
+    print(
+        "DEBUG: payload model_id={model} ref_audio={ref} ref_text_len={rlen} target_len={tlen}".format(
+            model=model_id,
+            ref=ref_audio,
+            rlen=len((ref_text or "").strip()),
+            tlen=len(target_text.strip()),
+        )
+    )
 
     try:
         wav, sr = _call_f5_api(model_id=model_id, ref_audio=ref_audio, ref_text=ref_text, target_text=target_text)
