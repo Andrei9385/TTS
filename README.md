@@ -43,6 +43,7 @@ The worker uses the existing adapter/service flow and executes synthesis in back
 
 CPU synthesis can be slow. Default timeout is set to `F5_TTS_TIMEOUT_SECONDS="900"`.
 If needed, increase it in `.env` (for long text or slower CPUs).
+For backward compatibility with old `.env` values, runtime enforces a minimum timeout of 900s.
 
 ## Optional troubleshooting fallback (stub)
 

@@ -93,12 +93,13 @@ class F5TTSAdapter:
                 str(payload_path),
             ]
 
+            effective_timeout = max(int(self.settings.f5_tts_timeout_seconds), 900)
             try:
                 completed = subprocess.run(
                     command,
                     capture_output=True,
                     text=True,
-                    timeout=self.settings.f5_tts_timeout_seconds,
+                    timeout=effective_timeout,
                     check=False,
                 )
             except FileNotFoundError:
@@ -121,7 +122,7 @@ class F5TTSAdapter:
                     return_code=None,
                     stdout=self._force_text(exc.stdout),
                     stderr=self._force_text(exc.stderr),
-                    error_message="F5-TTS subprocess timed out.",
+                    error_message=f"F5-TTS subprocess timed out after {effective_timeout}s.",
                     command=command,
                 )
 
