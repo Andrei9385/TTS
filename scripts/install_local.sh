@@ -39,10 +39,11 @@ if [ ! -f .env ]; then
   cp .env.example .env
 fi
 
+REAL_F5_CMD="${PROJECT_DIR}/.venv/bin/python ${PROJECT_DIR}/scripts/f5_tts_runner_real.py"
 if grep -q '^F5_TTS_COMMAND=' .env; then
-  sed -i 's#^F5_TTS_COMMAND=.*#F5_TTS_COMMAND="python3 scripts/f5_tts_runner_real.py"#' .env
+  sed -i "s#^F5_TTS_COMMAND=.*#F5_TTS_COMMAND=\"${REAL_F5_CMD}\"#" .env
 else
-  echo 'F5_TTS_COMMAND="python3 scripts/f5_tts_runner_real.py"' >> .env
+  echo "F5_TTS_COMMAND=\"${REAL_F5_CMD}\"" >> .env
 fi
 
 if grep -q '^F5_TTS_MODEL_ID=' .env; then
@@ -100,8 +101,10 @@ $SUDO systemctl enable --now tts-worker.service
 
 echo "[install] Complete."
 echo "[install] Open: http://<IP_МАШИНЫ>:8000 (локально: http://127.0.0.1:8000)"
-echo "[install] Troubleshooting fallback: set F5_TTS_COMMAND=\"python3 scripts/f5_tts_runner_stub.py\" in .env"
+echo "[install] Troubleshooting fallback: set F5_TTS_COMMAND=\"${PROJECT_DIR}/.venv/bin/python ${PROJECT_DIR}/scripts/f5_tts_runner_stub.py\" in .env"
 echo "[install] If service still listens on 127.0.0.1, run:"
 echo "  sudo systemctl daemon-reload"
 echo "  sudo systemctl restart tts-web"
+echo "  sudo systemctl restart tts-worker"
 echo "  systemctl cat tts-web --no-pager | sed -n '/ExecStart/p'"
+echo "  systemctl cat tts-worker --no-pager | sed -n '/ExecStart/p'"
