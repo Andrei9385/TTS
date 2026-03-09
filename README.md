@@ -41,6 +41,9 @@ F5_TTS_MODEL_ID="Misha24-10/F5-TTS_RUSSIAN"
 
 The worker uses the existing adapter/service flow and executes synthesis in background jobs.
 
+CPU synthesis can be slow. Default timeout is set to `F5_TTS_TIMEOUT_SECONDS="900"`.
+If needed, increase it in `.env` (for long text or slower CPUs).
+
 ## Optional troubleshooting fallback (stub)
 
 Use stub runner only for debugging:

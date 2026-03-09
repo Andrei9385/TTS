@@ -26,7 +26,7 @@ class Settings(BaseSettings):
 
     f5_tts_model_id: str = "Misha24-10/F5-TTS_RUSSIAN"
     f5_tts_command: str = ".venv/bin/python scripts/f5_tts_runner_real.py"
-    f5_tts_timeout_seconds: int = 180
+    f5_tts_timeout_seconds: int = 900
 
     training_runner_command: str = ""
     training_runner_timeout_seconds: int = 3600

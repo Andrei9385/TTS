@@ -52,6 +52,12 @@ else
   echo 'F5_TTS_MODEL_ID="Misha24-10/F5-TTS_RUSSIAN"' >> .env
 fi
 
+if grep -q '^F5_TTS_TIMEOUT_SECONDS=' .env; then
+  sed -i 's#^F5_TTS_TIMEOUT_SECONDS=.*#F5_TTS_TIMEOUT_SECONDS="900"#' .env
+else
+  echo 'F5_TTS_TIMEOUT_SECONDS="900"' >> .env
+fi
+
 echo "[install] Initializing database and storage..."
 python scripts/init_db.py
 
@@ -100,6 +106,7 @@ $SUDO systemctl enable --now tts-web.service
 $SUDO systemctl enable --now tts-worker.service
 
 echo "[install] Complete."
+echo "[install] F5 timeout default set to 900s for CPU inference."
 echo "[install] Open: http://<IP_МАШИНЫ>:8000 (локально: http://127.0.0.1:8000)"
 echo "[install] Troubleshooting fallback: set F5_TTS_COMMAND=\"${PROJECT_DIR}/.venv/bin/python ${PROJECT_DIR}/scripts/f5_tts_runner_stub.py\" in .env"
 echo "[install] If service still listens on 127.0.0.1, run:"
