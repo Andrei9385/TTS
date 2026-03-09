@@ -1,0 +1,27 @@
+<tbody
+  id="history-table-body"
+  {% if has_active_jobs %}
+  hx-get="/history/table"
+  hx-trigger="every 3s"
+  hx-swap="outerHTML"
+  {% endif %}
+>
+  {% for job in jobs %}
+  <tr {% if focus_job and (job.id|string) == focus_job|string %}class="focus"{% endif %}>
+    <td>{{ job.id }}</td>
+    <td>{{ job.created_at }}</td>
+    <td>{{ job.voice_profile.name if job.voice_profile else "—" }}</td>
+    <td><span class="status status-{{ job.status }}">{{ job.status }}</span></td>
+    <td title="{{ job.input_text }}">{{ job.input_text[:120] ~ ("..." if job.input_text|length > 120 else "") }}</td>
+    <td>
+      {% if job.output_filename %}
+      <a href="/outputs/{{ job.output_filename }}" target="_blank">file</a>
+      <audio controls preload="none" src="/outputs/{{ job.output_filename }}"></audio>
+      {% else %}
+      —
+      {% endif %}
+    </td>
+    <td>{{ job.error_message or "—" }}</td>
+  </tr>
+  {% endfor %}
+</tbody>
