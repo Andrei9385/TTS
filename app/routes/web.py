@@ -167,6 +167,7 @@ def history_page(request: Request, db: Session = Depends(get_db_session)) -> HTM
         {
             "jobs": jobs,
             "focus_job": focus_job,
+            "has_active_jobs": _has_active_synthesis_jobs(jobs),
             "page_title": "Synthesis History",
         },
     )
@@ -180,6 +181,8 @@ def history_table_partial(request: Request, db: Session = Depends(get_db_session
         "partials/history_rows.html",
         {
             "jobs": jobs,
+            "focus_job": request.query_params.get("focus_job"),
+            "has_active_jobs": _has_active_synthesis_jobs(jobs),
         },
     )
 
@@ -223,6 +226,10 @@ def _get_history_jobs(db: Session) -> list[SynthesisJob]:
         .order_by(SynthesisJob.created_at.desc())
         .limit(200)
     ).all()
+
+
+def _has_active_synthesis_jobs(jobs: list[SynthesisJob]) -> bool:
+    return any(job.status in {"queued", "processing"} for job in jobs)
 
 
 def _render_profiles_with_error(request: Request, db: Session, message: str) -> HTMLResponse:

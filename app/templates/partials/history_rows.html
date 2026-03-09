@@ -1,8 +1,10 @@
 <tbody
   id="history-table-body"
+  {% if has_active_jobs %}
   hx-get="/history/table"
   hx-trigger="every 3s"
   hx-swap="outerHTML"
+  {% endif %}
 >
   {% for job in jobs %}
   <tr {% if focus_job and (job.id|string) == focus_job|string %}class="focus"{% endif %}>
