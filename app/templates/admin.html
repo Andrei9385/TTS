@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Admin / Fine-tuning preparation</h2>
+  <p>Upload dataset artifacts and create training jobs. Execution is delegated to the training runner scaffold.</p>
+
+  {% if error %}
+  <div class="error">{{ error }}</div>
+  {% endif %}
+
+  <form action="/admin/training-jobs" method="post" enctype="multipart/form-data" class="form-grid">
+    <label>
+      Dataset file (zip/jsonl/csv/txt)
+      <input type="file" name="dataset_file" accept=".zip,.jsonl,.csv,.txt" required />
+    </label>
+
+    <label>
+      Notes (optional)
+      <textarea name="notes" rows="3" placeholder="Short notes about this dataset or experiment"></textarea>
+    </label>
+
+    <button type="submit">Create training job</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Training job history</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Created</th>
+        <th>Status</th>
+        <th>Dataset</th>
+        <th>Path</th>
+        <th>Error</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for job in training_jobs %}
+      <tr>
+        <td>{{ job.id }}</td>
+        <td>{{ job.created_at }}</td>
+        <td><span class="status status-{{ job.status }}">{{ job.status }}</span></td>
+        <td>{{ job.dataset_name }}</td>
+        <td title="{{ job.dataset_path }}">{{ job.dataset_path[:80] ~ ("..." if job.dataset_path|length > 80 else "") }}</td>
+        <td>{{ job.error_message or "—" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6">No training jobs yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
