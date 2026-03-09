@@ -137,12 +137,26 @@ def _fail_synthesis_job(db: Session, job: SynthesisJob, message: str) -> dict[st
     return {"job_id": job.id, "status": job.status, "error": job.error_message}
 
 
-def _build_log(warnings: list[str] | None, stdout: str, stderr: str) -> str:
+def _to_text(value: str | bytes | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return value
+
+
+def _build_log(warnings: list[str] | None, stdout: str | bytes | None, stderr: str | bytes | None) -> str:
     parts: list[str] = []
-    if warnings:
-        parts.append("Warnings: " + " | ".join(warnings))
-    if stdout.strip():
-        parts.append("STDOUT:\n" + stdout.strip())
-    if stderr.strip():
-        parts.append("STDERR:\n" + stderr.strip())
+
+    normalized_warnings = [_to_text(w) for w in (warnings or [])]
+    if normalized_warnings:
+        parts.append("Warnings: " + " | ".join(normalized_warnings))
+
+    stdout_text = _to_text(stdout).strip()
+    stderr_text = _to_text(stderr).strip()
+
+    if stdout_text:
+        parts.append("STDOUT:\n" + stdout_text)
+    if stderr_text:
+        parts.append("STDERR:\n" + stderr_text)
     return "\n\n".join(parts)
