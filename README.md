@@ -106,6 +106,13 @@ ss -ltnp | rg ':8000'
 sudo systemctl restart tts-worker
 ```
 
+Для дополнительной отладки синтеза смотрите `worker_log` (в БД) и журнал worker. Теперь worker пишет WAV-метаданные после пост-нормализации:
+
+```bash
+journalctl -u tts-worker -f
+sqlite3 storage/tts.sqlite3 "select id,status,error_message,substr(worker_log,1,400) from synthesis_jobs order by id desc limit 5;"
+```
+
 
 ### Если в Celery видите ошибку `Configured F5-TTS command was not found in PATH`
 

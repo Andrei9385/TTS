@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+import wave
 
 from sqlalchemy.orm import Session
 
@@ -9,6 +10,7 @@ from app.config import get_settings
 from app.db import SessionLocal
 from app.models import SynthesisJob, TrainingJob, VoiceProfile
 from app.services.auto_accent import build_auto_accent_adapter
+from app.services.audio_service import normalize_audio
 from app.services.f5_tts_adapter import F5TTSAdapter, F5TTSRequest
 from app.services.text_preprocessing import preprocess_text
 from app.services.training_runner import TrainingRunRequest, TrainingRunner
@@ -55,7 +57,29 @@ def process_synthesis_job(job_id: int) -> dict[str, str | int | None]:
             )
             result = adapter.synthesize(request)
 
-            combined_log = _build_log(preprocess.validation.warnings, result.stdout, result.stderr)
+            debug_lines: list[str] = []
+            if result.command:
+                debug_lines.append("runner_command=" + " ".join(result.command))
+
+            if result.success:
+                try:
+                    _normalize_output_wav(output_path, settings.ffmpeg_bin)
+                    debug_lines.append(_probe_wav(output_path))
+                except Exception as exc:
+                    result = type(result)(
+                        success=False,
+                        output_wav_path=None,
+                        return_code=result.return_code,
+                        stdout=result.stdout,
+                        stderr=result.stderr,
+                        error_message=f"Generated output WAV is invalid/unplayable: {exc}",
+                        command=result.command,
+                    )
+
+            if result.success and debug_lines:
+                print(f"[synthesis-debug] job_id={job.id} {debug_lines[-1]}")
+
+            combined_log = _build_log(preprocess.validation.warnings, result.stdout, result.stderr, debug_lines)
             job.processed_text = preprocess.final_text
             job.worker_log = combined_log[:4000] if combined_log else None
 
@@ -137,6 +161,25 @@ def _fail_synthesis_job(db: Session, job: SynthesisJob, message: str) -> dict[st
     return {"job_id": job.id, "status": job.status, "error": job.error_message}
 
 
+def _normalize_output_wav(output_path: Path, ffmpeg_bin: str) -> None:
+    normalized_path = output_path.with_name(output_path.stem + "_normalized.wav")
+    normalize_audio(output_path, normalized_path, ffmpeg_bin)
+    normalized_path.replace(output_path)
+
+
+def _probe_wav(output_path: Path) -> str:
+    with wave.open(str(output_path), "rb") as wav_file:
+        channels = wav_file.getnchannels()
+        sample_rate = wav_file.getframerate()
+        sample_width = wav_file.getsampwidth()
+        frames = wav_file.getnframes()
+    duration = (frames / sample_rate) if sample_rate > 0 else 0.0
+    return (
+        f"wav_meta path={output_path.name} size={output_path.stat().st_size}B "
+        f"channels={channels} sr={sample_rate} sampwidth={sample_width} duration={duration:.3f}s"
+    )
+
+
 def _to_text(value: str | bytes | None) -> str:
     if value is None:
         return ""
@@ -145,8 +188,17 @@ def _to_text(value: str | bytes | None) -> str:
     return value
 
 
-def _build_log(warnings: list[str] | None, stdout: str | bytes | None, stderr: str | bytes | None) -> str:
+def _build_log(
+    warnings: list[str] | None,
+    stdout: str | bytes | None,
+    stderr: str | bytes | None,
+    debug_lines: list[str] | None = None,
+) -> str:
     parts: list[str] = []
+
+    normalized_debug = [_to_text(line) for line in (debug_lines or [])]
+    if normalized_debug:
+        parts.append("Debug: " + " | ".join(normalized_debug))
 
     normalized_warnings = [_to_text(w) for w in (warnings or [])]
     if normalized_warnings:
