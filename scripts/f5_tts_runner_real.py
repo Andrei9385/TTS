@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import traceback
 import wave
 from pathlib import Path
@@ -31,7 +32,6 @@ def _save_wav_fallback(output_path: Path, waveform: Any, sample_rate: int) -> No
         samples = waveform
 
     if isinstance(samples, list) and samples and isinstance(samples[0], list):
-        # take first channel if nested
         samples = samples[0]
 
     pcm = bytearray()
@@ -50,10 +50,26 @@ def _save_wav_fallback(output_path: Path, waveform: Any, sample_rate: int) -> No
 
 
 def _save_audio(output_path: Path, waveform: Any, sample_rate: int) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Some runtime versions may return raw WAV bytes instead of numeric arrays.
+    if isinstance(waveform, (bytes, bytearray)):
+        data = bytes(waveform)
+        if data.startswith(b"RIFF"):
+            output_path.write_bytes(data)
+            return
+        raise RuntimeError("Audio result is bytes but not a WAV stream (missing RIFF header).")
+
+    # Some runtime versions may return an audio file path.
+    if isinstance(waveform, str):
+        src = Path(waveform)
+        if src.exists():
+            shutil.copyfile(src, output_path)
+            return
+
     try:
         import soundfile as sf  # type: ignore
 
-        output_path.parent.mkdir(parents=True, exist_ok=True)
         sf.write(str(output_path), waveform, sample_rate)
         return
     except Exception:
@@ -62,6 +78,11 @@ def _save_audio(output_path: Path, waveform: Any, sample_rate: int) -> None:
 
 def _call_f5_api(model_id: str, ref_audio: Path, ref_text: str | None, target_text: str) -> tuple[Any, int]:
     from f5_tts.api import F5TTS  # type: ignore
+
+    if not (ref_text or "").strip():
+        raise RuntimeError(
+            "Reference transcript is empty. For reliable Russian voice cloning, upload profile with transcript."
+        )
 
     ctor_attempts = [
         {"model": model_id, "device": "cpu"},
@@ -128,6 +149,8 @@ def _call_f5_api(model_id: str, ref_audio: Path, ref_text: str | None, target_te
         raise RuntimeError("F5-TTS result tuple is missing sample rate.")
 
     if isinstance(result, dict):
+        if result.get("audio_path"):
+            return str(result["audio_path"]), int(result.get("sample_rate") or result.get("sr") or 24000)
         wav = result.get("audio") or result.get("wav")
         sr = result.get("sample_rate") or result.get("sr") or 24000
         if wav is None:
