@@ -135,6 +135,12 @@ def enqueue_synthesis(
     if profile is None:
         return RedirectResponse(url="/synthesize?error=Unknown+voice+profile", status_code=303)
 
+    if not (profile.transcript or "").strip():
+        return RedirectResponse(
+            url="/synthesize?error=Selected+profile+has+empty+reference+transcript.+Update+profile+and+retry",
+            status_code=303,
+        )
+
     if not input_text.strip():
         return RedirectResponse(url="/synthesize?error=Text+is+required", status_code=303)
 

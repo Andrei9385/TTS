@@ -57,6 +57,7 @@ sudo systemctl restart tts-worker tts-web
 ## First real synthesis test after install
 
 1. Open `http://<IP_МАШИНЫ>:8000/profiles` and upload a short Russian reference WAV/MP3/M4A.
+   Важно: заполните transcript (текст из референс-аудио). Профили без transcript теперь не допускаются к синтезу.
 2. Open `http://<IP_МАШИНЫ>:8000/synthesize`, select profile, enter Russian text with optional `+` stress marks, submit.
 3. Open `http://<IP_МАШИНЫ>:8000/history` and verify job reaches `done`, then play generated audio.
 

@@ -76,6 +76,21 @@ def _save_audio(output_path: Path, waveform: Any, sample_rate: int) -> None:
         _save_wav_fallback(output_path, waveform, sample_rate)
 
 
+def _validate_output_wav(output_path: Path) -> None:
+    with wave.open(str(output_path), "rb") as wav_file:
+        frame_rate = wav_file.getframerate()
+        frame_count = wav_file.getnframes()
+
+    if frame_rate <= 0:
+        raise RuntimeError("Generated WAV has invalid sample rate.")
+
+    duration_seconds = frame_count / frame_rate
+    if duration_seconds < 0.5:
+        raise RuntimeError(
+            f"Generated WAV is too short ({duration_seconds:.2f}s). Check reference transcript/audio quality."
+        )
+
+
 def _call_f5_api(model_id: str, ref_audio: Path, ref_text: str | None, target_text: str) -> tuple[Any, int]:
     from f5_tts.api import F5TTS  # type: ignore
 
@@ -201,6 +216,11 @@ def main() -> int:
 
     if not output_wav.exists() or output_wav.stat().st_size == 0:
         return _fail(f"Output WAV was not created correctly: {output_wav}")
+
+    try:
+        _validate_output_wav(output_wav)
+    except Exception as exc:
+        return _fail(f"Output WAV validation failed: {exc}")
 
     print(f"F5-TTS synthesis complete. model={model_id} output={output_wav} sr={sr}")
     return 0
