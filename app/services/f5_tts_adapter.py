@@ -119,19 +119,22 @@ class F5TTSAdapter:
                     success=False,
                     output_wav_path=None,
                     return_code=None,
-                    stdout=exc.stdout or "",
-                    stderr=exc.stderr or "",
+                    stdout=self._force_text(exc.stdout),
+                    stderr=self._force_text(exc.stderr),
                     error_message="F5-TTS subprocess timed out.",
                     command=command,
                 )
+
+        stdout = self._force_text(completed.stdout)
+        stderr = self._force_text(completed.stderr)
 
         if completed.returncode != 0:
             return F5TTSResult(
                 success=False,
                 output_wav_path=None,
                 return_code=completed.returncode,
-                stdout=completed.stdout,
-                stderr=completed.stderr,
+                stdout=stdout,
+                stderr=stderr,
                 error_message="F5-TTS subprocess exited with non-zero status.",
                 command=command,
             )
@@ -141,8 +144,8 @@ class F5TTSAdapter:
                 success=False,
                 output_wav_path=None,
                 return_code=completed.returncode,
-                stdout=completed.stdout,
-                stderr=completed.stderr,
+                stdout=stdout,
+                stderr=stderr,
                 error_message="F5-TTS subprocess succeeded but output file was not created.",
                 command=command,
             )
@@ -151,8 +154,8 @@ class F5TTSAdapter:
             success=True,
             output_wav_path=request.output_wav_path,
             return_code=completed.returncode,
-            stdout=completed.stdout,
-            stderr=completed.stderr,
+            stdout=stdout,
+            stderr=stderr,
             error_message=None,
             command=command,
         )
@@ -179,3 +182,11 @@ class F5TTSAdapter:
                 normalized[1] = str((project_root / script_path).resolve())
 
         return normalized
+
+    @staticmethod
+    def _force_text(value: str | bytes | None) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, bytes):
+            return value.decode("utf-8", errors="replace")
+        return value
