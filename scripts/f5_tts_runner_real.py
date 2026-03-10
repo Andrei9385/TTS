@@ -6,6 +6,7 @@ import json
 import shutil
 import traceback
 import wave
+from glob import glob
 from pathlib import Path
 from typing import Any
 
@@ -92,6 +93,53 @@ def _validate_output_wav(output_path: Path) -> None:
         )
 
 
+def _resolve_model_runtime_assets(model_id: str) -> tuple[str, str | None, str | None]:
+    """Resolve constructor-friendly model args for different F5 package variants."""
+    if "/" not in model_id:
+        return model_id, None, None
+
+    try:
+        from huggingface_hub import snapshot_download  # type: ignore
+    except Exception as exc:  # pragma: no cover - runtime integration surface
+        raise RuntimeError(
+            "Model id looks like HuggingFace repo but huggingface_hub is unavailable. "
+            "Install huggingface_hub in the runtime environment."
+        ) from exc
+
+    repo_dir = snapshot_download(repo_id=model_id)
+
+    ckpt_patterns = ("*.safetensors", "*.ckpt", "*.pt", "*.bin")
+    ckpt_candidates: list[str] = []
+    for pattern in ckpt_patterns:
+        ckpt_candidates.extend(glob(str(Path(repo_dir) / "**" / pattern), recursive=True))
+    ckpt_candidates = [p for p in ckpt_candidates if "/optimizer" not in p and "/events" not in p]
+
+    if not ckpt_candidates:
+        raise RuntimeError(f"Could not find checkpoint file in HF repo: {model_id}")
+
+    def _rank_ckpt(path: str) -> tuple[int, int, str]:
+        name = Path(path).name.lower()
+        score = 0
+        if "ema" in name:
+            score -= 3
+        if "model" in name or "ckpt" in name:
+            score -= 2
+        if "step" in name:
+            score += 1
+        return (score, len(name), name)
+
+    ckpt_file = sorted(ckpt_candidates, key=_rank_ckpt)[0]
+
+    vocab_candidates = glob(str(Path(repo_dir) / "**" / "*vocab*.txt"), recursive=True)
+    if not vocab_candidates:
+        vocab_candidates = glob(str(Path(repo_dir) / "**" / "*.txt"), recursive=True)
+    vocab_file = sorted(vocab_candidates, key=lambda x: (len(Path(x).name), Path(x).name.lower()))[0] if vocab_candidates else None
+
+    # Common architecture for most published F5 checkpoints.
+    model_arch = "F5TTS_v1_Base"
+    return model_arch, ckpt_file, vocab_file
+
+
 def _call_f5_api(model_id: str, ref_audio: Path, ref_text: str | None, target_text: str) -> tuple[Any, int]:
     from f5_tts.api import F5TTS  # type: ignore
 
@@ -99,6 +147,15 @@ def _call_f5_api(model_id: str, ref_audio: Path, ref_text: str | None, target_te
         raise RuntimeError(
             "Reference transcript is empty. For reliable Russian voice cloning, upload profile with transcript."
         )
+
+    resolved_model, ckpt_file, vocab_file = _resolve_model_runtime_assets(model_id)
+    print(
+        "DEBUG: resolved_model={model} ckpt_file={ckpt} vocab_file={vocab}".format(
+            model=resolved_model,
+            ckpt=ckpt_file or "<none>",
+            vocab=vocab_file or "<none>",
+        )
+    )
 
     init_signature = inspect.signature(F5TTS.__init__)
     init_params = set(init_signature.parameters.keys())
@@ -108,20 +165,24 @@ def _call_f5_api(model_id: str, ref_audio: Path, ref_text: str | None, target_te
     base_kwargs: dict[str, Any] = {}
     if "device" in init_params:
         base_kwargs["device"] = "cpu"
+    if "ckpt_file" in init_params and ckpt_file:
+        base_kwargs["ckpt_file"] = ckpt_file
+    if "vocab_file" in init_params and vocab_file:
+        base_kwargs["vocab_file"] = vocab_file
 
     model_field_candidates = ("model", "hf_repo_id", "model_id", "repo_id")
     for field in model_field_candidates:
         if field in init_params:
-            ctor_attempts.append({**base_kwargs, field: model_id})
+            ctor_attempts.append({**base_kwargs, field: resolved_model})
 
-    # Final fallback: only supported base kwargs (never model-less if model args are supported).
+    # Final fallback: only supported base kwargs (for APIs that don't expose model selector).
     if not ctor_attempts and base_kwargs:
         ctor_attempts.append(base_kwargs)
 
     if not ctor_attempts:
         raise RuntimeError(
             "F5TTS.__init__ does not expose supported model arguments "
-            f"(available={sorted(init_params)}). Cannot enforce requested model '{model_id}'."
+            f"(available={sorted(init_params)}). Cannot enforce requested model '{model_id}' / resolved '{resolved_model}'."
         )
 
     last_error: Exception | None = None
