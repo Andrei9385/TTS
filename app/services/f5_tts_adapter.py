@@ -136,7 +136,7 @@ class F5TTSAdapter:
                 return_code=completed.returncode,
                 stdout=stdout,
                 stderr=stderr,
-                error_message="F5-TTS subprocess exited with non-zero status.",
+                error_message=self._build_subprocess_error(completed.returncode, stdout, stderr),
                 command=command,
             )
 
@@ -160,6 +160,23 @@ class F5TTSAdapter:
             error_message=None,
             command=command,
         )
+
+    @staticmethod
+    def _build_subprocess_error(return_code: int | None, stdout: str, stderr: str) -> str:
+        details: list[str] = []
+        if return_code is not None:
+            details.append(f"return_code={return_code}")
+
+        stderr_tail = (stderr or "").strip()[-500:]
+        stdout_tail = (stdout or "").strip()[-300:]
+
+        if stderr_tail:
+            details.append(f"stderr_tail={stderr_tail}")
+        elif stdout_tail:
+            details.append(f"stdout_tail={stdout_tail}")
+
+        suffix = f" ({'; '.join(details)})" if details else ""
+        return "F5-TTS subprocess exited with non-zero status." + suffix
 
     @staticmethod
     def _parse_command(raw_command: str | None) -> list[str]:
