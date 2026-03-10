@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 import shutil
 import traceback
@@ -99,25 +100,46 @@ def _call_f5_api(model_id: str, ref_audio: Path, ref_text: str | None, target_te
             "Reference transcript is empty. For reliable Russian voice cloning, upload profile with transcript."
         )
 
-    ctor_attempts = [
-        {"model": model_id, "device": "cpu"},
-        {"model_name": model_id, "device": "cpu"},
-        {"model": model_id},
-        {"model_name": model_id},
-    ]
+    init_signature = inspect.signature(F5TTS.__init__)
+    init_params = set(init_signature.parameters.keys())
+
+    ctor_attempts: list[dict[str, Any]] = []
+
+    base_kwargs: dict[str, Any] = {}
+    if "device" in init_params:
+        base_kwargs["device"] = "cpu"
+
+    model_field_candidates = ("model", "hf_repo_id", "model_id", "repo_id")
+    for field in model_field_candidates:
+        if field in init_params:
+            ctor_attempts.append({**base_kwargs, field: model_id})
+
+    # Final fallback: only supported base kwargs (never model-less if model args are supported).
+    if not ctor_attempts and base_kwargs:
+        ctor_attempts.append(base_kwargs)
+
+    if not ctor_attempts:
+        raise RuntimeError(
+            "F5TTS.__init__ does not expose supported model arguments "
+            f"(available={sorted(init_params)}). Cannot enforce requested model '{model_id}'."
+        )
 
     last_error: Exception | None = None
     tts = None
     for kwargs in ctor_attempts:
         try:
             tts = F5TTS(**kwargs)
+            print("DEBUG: ctor_kwargs_keys=" + ",".join(sorted(kwargs.keys())))
             break
         except Exception as exc:  # pragma: no cover - runtime integration surface
             last_error = exc
             continue
 
     if tts is None:
-        raise RuntimeError(f"Could not initialize F5TTS with requested model '{model_id}': {last_error}")
+        raise RuntimeError(
+            f"Could not initialize F5TTS with requested model '{model_id}' "
+            f"using supported init args {sorted(init_params)}: {last_error}"
+        )
 
     print(f"DEBUG: F5TTS initialized class={tts.__class__.__name__} model_id={model_id}")
 
