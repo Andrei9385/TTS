@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Synthesis history</h2>
+  <p>Statuses: queued → processing → done/failed. Auto-refresh stops when no active jobs to avoid resetting audio players.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Timestamp</th>
+        <th>Profile</th>
+        <th>Status</th>
+        <th>Input text</th>
+        <th>Output</th>
+        <th>Error</th>
+      </tr>
+    </thead>
+    {% include "partials/history_rows.html" %}
+  </table>
+</section>
+{% endblock %}
