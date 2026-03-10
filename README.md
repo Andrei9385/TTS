@@ -13,6 +13,7 @@ This installer will:
 - create/update `.venv`,
 - install Python dependencies,
 - install CPU PyTorch + real F5-TTS runtime,
+- prefetch `Misha24-10/F5-TTS_RUSSIAN` model snapshot (reduces first synthesis timeout risk),
 - create `.env` if missing,
 - configure `F5_TTS_COMMAND=".venv/bin/python scripts/f5_tts_runner_real.py"` by default,
 - initialize DB,
@@ -41,9 +42,9 @@ F5_TTS_MODEL_ID="Misha24-10/F5-TTS_RUSSIAN"
 
 The worker uses the existing adapter/service flow and executes synthesis in background jobs.
 
-CPU synthesis can be slow. Default timeout is set to `F5_TTS_TIMEOUT_SECONDS="900"`.
+CPU synthesis can be slow. Default timeout is set to `F5_TTS_TIMEOUT_SECONDS="1800"`.
 If needed, increase it in `.env` (for long text or slower CPUs).
-For backward compatibility with old `.env` values, runtime enforces a minimum timeout of 900s.
+For backward compatibility with old `.env` values, runtime enforces a minimum timeout of 900s; recommended value is 1800s on CPU.
 
 ## Optional troubleshooting fallback (stub)
 

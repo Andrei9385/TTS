@@ -34,6 +34,13 @@ python -m pip install --index-url https://download.pytorch.org/whl/cpu torch tor
 echo "[install] Installing F5-TTS runtime..."
 python -m pip install git+https://github.com/SWivid/F5-TTS.git
 
+echo "[install] Prefetching F5 Russian model snapshot (to avoid first-run worker timeout)..."
+python - <<'PYMODEL'
+from huggingface_hub import snapshot_download
+snapshot_download(repo_id="Misha24-10/F5-TTS_RUSSIAN")
+print("[install] Model snapshot cached")
+PYMODEL
+
 echo "[install] Preparing .env..."
 if [ ! -f .env ]; then
   cp .env.example .env
@@ -53,9 +60,9 @@ else
 fi
 
 if grep -q '^F5_TTS_TIMEOUT_SECONDS=' .env; then
-  sed -i 's#^F5_TTS_TIMEOUT_SECONDS=.*#F5_TTS_TIMEOUT_SECONDS="900"#' .env
+  sed -i 's#^F5_TTS_TIMEOUT_SECONDS=.*#F5_TTS_TIMEOUT_SECONDS="1800"#' .env
 else
-  echo 'F5_TTS_TIMEOUT_SECONDS="900"' >> .env
+  echo 'F5_TTS_TIMEOUT_SECONDS="1800"' >> .env
 fi
 
 echo "[install] Initializing database and storage..."
@@ -106,7 +113,7 @@ $SUDO systemctl enable --now tts-web.service
 $SUDO systemctl enable --now tts-worker.service
 
 echo "[install] Complete."
-echo "[install] F5 timeout default set to 900s for CPU inference."
+echo "[install] F5 timeout default set to 1800s for CPU inference."
 echo "[install] Open: http://<IP_МАШИНЫ>:8000 (локально: http://127.0.0.1:8000)"
 echo "[install] Troubleshooting fallback: set F5_TTS_COMMAND=\"${PROJECT_DIR}/.venv/bin/python ${PROJECT_DIR}/scripts/f5_tts_runner_stub.py\" in .env"
 echo "[install] If service still listens on 127.0.0.1, run:"
